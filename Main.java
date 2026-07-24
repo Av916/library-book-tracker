@@ -64,7 +64,7 @@ public class Main {
     private static void showLoggedInMenu() {
         System.out.println("\n===== Welcome, " + authService.getCurrentUser().getUsername()
                 + " (" + authService.getCurrentUser().getRole() + ") =====");
-        System.out.println("1. View My Profile\n2. Logout");
+        System.out.println("1. View My Profile\n2. Logout\n3. View All Users [ADMIN only]");
         System.out.print("Enter choice: ");
 
         int choice;
@@ -82,6 +82,15 @@ public class Main {
             case 2:
                 authService.logout();
                 System.out.println("Logged out successfully.");
+                break;
+            case 3:
+                if (authService.isAdmin()) {
+                    for (User u : authService.getAllUsers()) {
+                        System.out.println(u);
+                    }
+                } else {
+                    System.out.println("Access denied: admin only.");
+                }
                 break;
             default:
                 System.out.println("Invalid choice, try again.");

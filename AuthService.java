@@ -75,6 +75,9 @@ public class AuthService {
         return currentUser;
     }
 
+    public List<User> getAllUsers() {
+        return users;
+    }
     public boolean isAdmin() {
         return currentUser != null && "ADMIN".equalsIgnoreCase(currentUser.getRole());
     }
