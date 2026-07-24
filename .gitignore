@@ -1,0 +1,24 @@
+# Compiled class files
+*.class
+
+# Local data files (auth persistence, generated at runtime)
+users.txt
+books.txt
+
+# Package files
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
