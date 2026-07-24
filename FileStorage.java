@@ -3,11 +3,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Handles all file read/write operations for user data.
- * Data is stored in a simple comma-delimited text file: users.txt
+ * Handles all file read/write operations for user and book data.
+ * Data is stored in comma-delimited text files: users.txt and books.txt.
  */
 public class FileStorage {
     private static final String USERS_FILE = "users.txt";
+    private static final String BOOKS_FILE = "books.txt";
 
     /**
      * Loads all users from users.txt into memory.
@@ -61,6 +62,57 @@ public class FileStorage {
             }
         } catch (IOException e) {
             System.out.println("Error saving users.txt: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Loads books from books.txt. Missing files are created; malformed lines
+     * are skipped with a warning so one bad record does not stop the program.
+     */
+    public List<Book> loadBooks() {
+        List<Book> books = new ArrayList<>();
+        File file = new File(BOOKS_FILE);
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                System.out.println("Warning: could not create books.txt -> " + e.getMessage());
+            }
+            return books;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+                Book book = Book.fromFileLine(line);
+                if (book == null) {
+                    System.out.println("Warning: skipping corrupt line " + lineNumber + " in books.txt");
+                    continue;
+                }
+                books.add(book);
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading books.txt: " + e.getMessage());
+        }
+
+        return books;
+    }
+
+    /** Saves all catalogue records after each book-state change. */
+    public void saveBooks(List<Book> books) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOKS_FILE))) {
+            for (Book book : books) {
+                writer.write(book.toFileLine());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving books.txt: " + e.getMessage());
         }
     }
 }

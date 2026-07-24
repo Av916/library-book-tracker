@@ -1,17 +1,17 @@
-import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 
 /**
- * Entry point for the Auth + File Persistence CLI module.
- * This is the standalone auth layer, ready to be plugged into the
- * full Library Book Tracker later.
+ * Entry point for the Library Book Tracker CLI.
  */
 public class Main {
     private static Scanner scanner = new Scanner(System.in);
-    private static AuthService authService = new AuthService(new FileStorage());
+    private static FileStorage fileStorage = new FileStorage();
+    private static AuthService authService = new AuthService(fileStorage);
+    private static Library library = new Library(fileStorage);
 
     public static void main(String[] args) {
-        System.out.println("===== Library Book Tracker: Auth Module =====");
+        System.out.println("===== Library Book Tracker =====");
 
         boolean running = true;
         while (running) {
@@ -57,14 +57,13 @@ public class Main {
         }
     }
 
-    /**
-     * Shows the post-login menu. Only Logout and Exit are available here
-     * since book management features are not part of this module yet.
-     */
     private static void showLoggedInMenu() {
         System.out.println("\n===== Welcome, " + authService.getCurrentUser().getUsername()
                 + " (" + authService.getCurrentUser().getRole() + ") =====");
-        System.out.println("1. View My Profile\n2. Logout\n3. View All Users [ADMIN only]");
+        System.out.println("1. Add Book [ADMIN only]\n2. View Available Books"
+                + "\n3. View All Books\n4. Search Books\n5. Remove Book [ADMIN only]"
+                + "\n6. View My Profile\n7. View All Users [ADMIN only]"
+                + "\n8. Logout\n9. Exit");
         System.out.print("Enter choice: ");
 
         int choice;
@@ -77,23 +76,105 @@ public class Main {
 
         switch (choice) {
             case 1:
-                System.out.println(authService.getCurrentUser());
+                handleAddBook();
                 break;
             case 2:
+                displayBooks(library.getAvailableBooks(), "No books are currently available.");
+                break;
+            case 3:
+                displayBooks(library.getAllBooks(), "The catalogue is empty.");
+                break;
+            case 4:
+                handleSearchBooks();
+                break;
+            case 5:
+                handleRemoveBook();
+                break;
+            case 6:
+                System.out.println(authService.getCurrentUser());
+                break;
+            case 7:
+                handleViewAllUsers();
+                break;
+            case 8:
                 authService.logout();
                 System.out.println("Logged out successfully.");
                 break;
-            case 3:
-                if (authService.isAdmin()) {
-                    for (User u : authService.getAllUsers()) {
-                        System.out.println(u);
-                    }
-                } else {
-                    System.out.println("Access denied: admin only.");
-                }
+            case 9:
+                System.out.println("Goodbye!");
+                scanner.close();
+                System.exit(0);
                 break;
             default:
                 System.out.println("Invalid choice, try again.");
+        }
+    }
+
+    private static void handleAddBook() {
+        if (!requireAdmin()) {
+            return;
+        }
+
+        System.out.print("Book title: ");
+        String title = scanner.nextLine();
+        System.out.print("Book author: ");
+        String author = scanner.nextLine();
+
+        try {
+            Book book = library.addBook(title, author);
+            System.out.println("Book added successfully: " + book);
+        } catch (InvalidBookDataException e) {
+            System.out.println("Could not add book: " + e.getMessage());
+        }
+    }
+
+    private static void handleSearchBooks() {
+        System.out.print("Search by title or author: ");
+        String query = scanner.nextLine();
+        displayBooks(library.searchBooks(query), "No matching books found.");
+    }
+
+    private static void handleRemoveBook() {
+        if (!requireAdmin()) {
+            return;
+        }
+
+        System.out.print("Book ID to remove: ");
+        try {
+            int id = Integer.parseInt(scanner.nextLine().trim());
+            library.removeBook(id);
+            System.out.println("Book removed successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid book ID.");
+        } catch (BookNotFoundException | BookNotAvailableException e) {
+            System.out.println("Could not remove book: " + e.getMessage());
+        }
+    }
+
+    private static void handleViewAllUsers() {
+        if (!requireAdmin()) {
+            return;
+        }
+        for (User user : authService.getAllUsers()) {
+            System.out.println(user);
+        }
+    }
+
+    private static boolean requireAdmin() {
+        if (!authService.isAdmin()) {
+            System.out.println("Access denied: admin only.");
+            return false;
+        }
+        return true;
+    }
+
+    private static void displayBooks(List<Book> books, String emptyMessage) {
+        if (books.isEmpty()) {
+            System.out.println(emptyMessage);
+            return;
+        }
+        for (Book book : books) {
+            System.out.println(book);
         }
     }
 
