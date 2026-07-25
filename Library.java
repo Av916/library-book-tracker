@@ -7,6 +7,7 @@ import java.util.List;
 public class Library {
     private final FileStorage fileStorage;
     private final List<Book> books;
+    private Book lastDeletedBook = null;
 
     public Library(FileStorage fileStorage) {
         this.fileStorage = fileStorage;
@@ -56,6 +57,7 @@ public class Library {
         if (!book.isAvailable()) {
             throw new BookNotAvailableException("Cannot remove a borrowed book.");
         }
+        lastDeletedBook = book;
         books.remove(book);
         fileStorage.saveBooks(books);
     }
@@ -89,5 +91,15 @@ public class Library {
         if (title.contains(",") || author.contains(",")) {
             throw new InvalidBookDataException("Title and author cannot contain commas.");
         }
+    }
+
+    public boolean undoDelete(){
+        if (lastDeletedBook == null){
+            return false;
+        }
+        books.add(lastDeletedBook);
+        fileStorage.saveBooks(books);
+        lastDeletedBook = null;
+        return true;
     }
 }
