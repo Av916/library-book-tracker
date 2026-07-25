@@ -63,7 +63,7 @@ public class Main {
         System.out.println("1. Add Book [ADMIN only]\n2. View Available Books"
                 + "\n3. View All Books\n4. Search Books\n5. Remove Book [ADMIN only]"
                 + "\n6. View My Profile\n7. View All Users [ADMIN only]"
-                + "\n8. Logout\n9. Exit");
+                +"\n8. Undo Last Deleted Book [ADMIN ONLY]" +"\n9. Logout\n10. Exit");
         System.out.print("Enter choice: ");
 
         int choice;
@@ -97,10 +97,20 @@ public class Main {
                 handleViewAllUsers();
                 break;
             case 8:
+                if (!requireAdmin()){
+                    break;
+                }
+                if (library.undoDelete()){
+                    System.out.println("Last deleted book restored successfully.");
+                }else{
+                    System.out.println("No deleted book available to restore.");
+                }
+                break;
+            case 9:
                 authService.logout();
                 System.out.println("Logged out successfully.");
                 break;
-            case 9:
+            case 10:
                 System.out.println("Goodbye!");
                 scanner.close();
                 System.exit(0);
