@@ -68,7 +68,8 @@ public class Main {
                 + "\n10. Remove Book [ADMIN only]\n11. View My Profile"
                 + "\n12. View All Users [ADMIN only]"
                 + "\n13. Undo Last Deleted Book [ADMIN only]"
-                + "\n14. Logout\n15. Exit");
+                + "\n14. Renew Book"
+                + "\n15. Logout\n16. Exit");
         System.out.print("Enter choice: ");
 
         int choice;
@@ -121,10 +122,13 @@ public class Main {
                 handleUndoDelete();
                 break;
             case 14:
+                handleRenewBook();
+                break;
+            case 15:
                 authService.logout();
                 System.out.println("Logged out successfully.");
                 break;
-            case 15:
+            case 16:
                 System.out.println("Goodbye!");
                 scanner.close();
                 System.exit(0);
@@ -197,6 +201,8 @@ public class Main {
             System.out.println("Could not issue book: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Could not issue book: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            System.out.println("Could not issue book: " + e.getMessage());
         }
     }
 
@@ -212,6 +218,22 @@ public class Main {
             System.out.println("Could not return book: " + e.getMessage());
         } catch (IllegalStateException e) {
             System.out.println("Could not return book: " + e.getMessage());
+        }
+    }
+
+    private static void handleRenewBook() {
+        System.out.print("Issue ID to renew: ");
+        try {
+            int issueId = Integer.parseInt(scanner.nextLine().trim());
+            IssueRecord issue = library.renewIssue(issueId, authService.getCurrentUser().getUsername(),
+                    authService.isAdmin());
+            System.out.println("Book renewed successfully. New due date: " + issue.getDueDate());
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid issue ID.");
+        } catch (IssueNotFoundException | UnauthorizedReturnException e) {
+            System.out.println("Could not renew book: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            System.out.println("Could not renew book: " + e.getMessage());
         }
     }
 

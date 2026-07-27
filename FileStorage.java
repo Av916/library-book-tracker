@@ -3,8 +3,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Handles all file read/write operations for user and book data.
- * Data is stored in comma-delimited text files: users.txt and books.txt.
+ * Handles all file read/write operations for user, book, and issue data.
+ * Data is stored in comma-delimited text files.
  */
 public class FileStorage {
     private static final String USERS_FILE = "users.txt";

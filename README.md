@@ -14,6 +14,8 @@ A command-line library tracker built in **pure Java** (no frameworks, no externa
 - Catalogue search and availability views
 - Multiple copies per catalogue title, with available and issued counts
 - Issue books to the logged-in user with a 14-day due date
+- Borrowing limit of 3 active books per user
+- Renew active books once for another 14 days, if they are not overdue
 - Return books using an issue ID; members can return only their own books
 - Persistent issue records in `issues.txt`
 
@@ -64,6 +66,8 @@ On launch, you'll see:
 - **Register**: choose a username, password, and role (`ADMIN` or `MEMBER`). Duplicate usernames are rejected.
 - **Login**: enter your username and password. Wrong credentials are rejected with a clear message.
 - After logging in, members and admins can issue available books, view their active issues, and return them. Admins can also manage the catalogue and view all active issues.
+- A user can have at most 3 active issued books at a time.
+- Active books can be renewed once before the due date. Renewal adds 14 days to the current due date.
 
 All registered users are saved to `users.txt` in the project directory, in the format:
 
@@ -85,6 +89,12 @@ The application also reads the earlier `id,title,author,isAvailable` book format
 issueId,bookId,borrowerUsername,issueDate,dueDate,returnDate
 ```
 
+Newer issue records include renewal count:
+
+```
+issueId,bookId,borrowerUsername,issueDate,dueDate,returnDate,renewalCount
+```
+
 ## Exception Handling
 
 | Scenario | Exception |
@@ -95,6 +105,8 @@ issueId,bookId,borrowerUsername,issueDate,dueDate,returnDate
 | File read/write failure | `IOException` (caught internally, shown as a warning) |
 | Corrupt line in `users.txt` | Skipped with a warning, program continues loading |
 | Attempting to issue an unavailable book | `BookNotAvailableException` |
+| Attempting to issue more than 3 active books | `IllegalStateException` |
+| Attempting to renew a returned, overdue, or already-renewed book | `IllegalStateException` |
 | Returning another member's book | `UnauthorizedReturnException` |
 
 ## Roadmap
