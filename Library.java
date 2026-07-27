@@ -11,6 +11,9 @@ public class Library {
     private final List<IssueRecord> issues;
     private Book lastDeletedBook = null;
     private static final int LOAN_PERIOD_DAYS = 14;
+    private static final int RENEWAL_PERIOD_DAYS = 14;
+    private static final int MAX_ACTIVE_ISSUES_PER_USER = 3;
+    private static final int MAX_RENEWALS_PER_ISSUE = 1;
 
     public Library(FileStorage fileStorage) {
         this.fileStorage = fileStorage;
@@ -71,11 +74,15 @@ public class Library {
         if (borrowerUsername == null || borrowerUsername.trim().isEmpty()) {
             throw new IllegalArgumentException("Borrower username is required.");
         }
+        String normalizedUsername = borrowerUsername.trim();
+        if (getActiveIssueCount(normalizedUsername) >= MAX_ACTIVE_ISSUES_PER_USER) {
+            throw new IllegalStateException("Borrowing limit reached. Return a book before issuing another.");
+        }
 
         Book book = findBookById(bookId);
         book.issueCopy();
         LocalDate issueDate = LocalDate.now();
-        IssueRecord issue = new IssueRecord(nextIssueId(), bookId, borrowerUsername.trim(),
+        IssueRecord issue = new IssueRecord(nextIssueId(), bookId, normalizedUsername,
                 issueDate, issueDate.plusDays(LOAN_PERIOD_DAYS), null);
         issues.add(issue);
         fileStorage.saveBooks(books);
@@ -105,6 +112,27 @@ public class Library {
         fileStorage.saveIssues(issues);
     }
 
+    public IssueRecord renewIssue(int issueId, String username, boolean isAdmin)
+            throws IssueNotFoundException, UnauthorizedReturnException {
+        IssueRecord issue = findIssueById(issueId);
+        if (issue.isReturned()) {
+            throw new IllegalStateException("Returned books cannot be renewed.");
+        }
+        if (!isAdmin && !issue.getBorrowerUsername().equalsIgnoreCase(username)) {
+            throw new UnauthorizedReturnException("You can renew only books issued to your account.");
+        }
+        if (issue.getDueDate().isBefore(LocalDate.now())) {
+            throw new IllegalStateException("Overdue books cannot be renewed.");
+        }
+        if (issue.getRenewalCount() >= MAX_RENEWALS_PER_ISSUE) {
+            throw new IllegalStateException("This issue has already been renewed.");
+        }
+
+        issue.renew(RENEWAL_PERIOD_DAYS);
+        fileStorage.saveIssues(issues);
+        return issue;
+    }
+
     public List<IssueRecord> getMyActiveIssues(String username) {
         List<IssueRecord> myIssues = new ArrayList<>();
         for (IssueRecord issue : issues) {
@@ -123,6 +151,16 @@ public class Library {
             }
         }
         return activeIssues;
+    }
+
+    private int getActiveIssueCount(String username) {
+        int activeIssueCount = 0;
+        for (IssueRecord issue : issues) {
+            if (!issue.isReturned() && issue.getBorrowerUsername().equalsIgnoreCase(username)) {
+                activeIssueCount++;
+            }
+        }
+        return activeIssueCount;
     }
 
     public void updateQuantity(int bookId, int newQuantity) throws BookNotFoundException {
