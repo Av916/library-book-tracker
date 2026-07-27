@@ -4,6 +4,7 @@
 # Local data files (auth persistence, generated at runtime)
 users.txt
 books.txt
+issues.txt
 
 # Package files
 *.jar
