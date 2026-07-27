@@ -61,9 +61,14 @@ public class Main {
         System.out.println("\n===== Welcome, " + authService.getCurrentUser().getUsername()
                 + " (" + authService.getCurrentUser().getRole() + ") =====");
         System.out.println("1. Add Book [ADMIN only]\n2. View Available Books"
-                + "\n3. View All Books\n4. Search Books\n5. Remove Book [ADMIN only]"
-                + "\n6. View My Profile\n7. View All Users [ADMIN only]"
-                +"\n8. Undo Last Deleted Book [ADMIN ONLY]" +"\n9. Logout\n10. Exit");
+                + "\n3. View All Books\n4. Search Books\n5. Issue Book"
+                + "\n6. Return Book\n7. View My Issued Books"
+                + "\n8. View All Issued Books [ADMIN only]"
+                + "\n9. Update Book Quantity [ADMIN only]"
+                + "\n10. Remove Book [ADMIN only]\n11. View My Profile"
+                + "\n12. View All Users [ADMIN only]"
+                + "\n13. Undo Last Deleted Book [ADMIN only]"
+                + "\n14. Logout\n15. Exit");
         System.out.print("Enter choice: ");
 
         int choice;
@@ -88,29 +93,38 @@ public class Main {
                 handleSearchBooks();
                 break;
             case 5:
-                handleRemoveBook();
+                handleIssueBook();
                 break;
             case 6:
-                System.out.println(authService.getCurrentUser());
+                handleReturnBook();
                 break;
             case 7:
-                handleViewAllUsers();
+                displayIssues(library.getMyActiveIssues(authService.getCurrentUser().getUsername()),
+                        "You have no books currently issued.");
                 break;
             case 8:
-                if (!requireAdmin()){
-                    break;
-                }
-                if (library.undoDelete()){
-                    System.out.println("Last deleted book restored successfully.");
-                }else{
-                    System.out.println("No deleted book available to restore.");
-                }
+                handleViewAllIssuedBooks();
                 break;
             case 9:
+                handleUpdateQuantity();
+                break;
+            case 10:
+                handleRemoveBook();
+                break;
+            case 11:
+                System.out.println(authService.getCurrentUser());
+                break;
+            case 12:
+                handleViewAllUsers();
+                break;
+            case 13:
+                handleUndoDelete();
+                break;
+            case 14:
                 authService.logout();
                 System.out.println("Logged out successfully.");
                 break;
-            case 10:
+            case 15:
                 System.out.println("Goodbye!");
                 scanner.close();
                 System.exit(0);
@@ -129,9 +143,18 @@ public class Main {
         String title = scanner.nextLine();
         System.out.print("Book author: ");
         String author = scanner.nextLine();
+        System.out.print("Number of copies: ");
+
+        int quantity;
+        try {
+            quantity = Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid whole-number quantity.");
+            return;
+        }
 
         try {
-            Book book = library.addBook(title, author);
+            Book book = library.addBook(title, author, quantity);
             System.out.println("Book added successfully: " + book);
         } catch (InvalidBookDataException e) {
             System.out.println("Could not add book: " + e.getMessage());
@@ -161,6 +184,74 @@ public class Main {
         }
     }
 
+    private static void handleIssueBook() {
+        System.out.print("Book ID to issue: ");
+        try {
+            int bookId = Integer.parseInt(scanner.nextLine().trim());
+            IssueRecord issue = library.issueBook(bookId, authService.getCurrentUser().getUsername());
+            System.out.println("Book issued successfully. Issue ID: " + issue.getId()
+                    + " | Due date: " + issue.getDueDate());
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid book ID.");
+        } catch (BookNotFoundException | BookNotAvailableException e) {
+            System.out.println("Could not issue book: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Could not issue book: " + e.getMessage());
+        }
+    }
+
+    private static void handleReturnBook() {
+        System.out.print("Issue ID to return: ");
+        try {
+            int issueId = Integer.parseInt(scanner.nextLine().trim());
+            library.returnBook(issueId, authService.getCurrentUser().getUsername(), authService.isAdmin());
+            System.out.println("Book returned successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid issue ID.");
+        } catch (IssueNotFoundException | UnauthorizedReturnException e) {
+            System.out.println("Could not return book: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            System.out.println("Could not return book: " + e.getMessage());
+        }
+    }
+
+    private static void handleViewAllIssuedBooks() {
+        if (!requireAdmin()) {
+            return;
+        }
+        displayIssues(library.getAllActiveIssues(), "No books are currently issued.");
+    }
+
+    private static void handleUpdateQuantity() {
+        if (!requireAdmin()) {
+            return;
+        }
+
+        System.out.print("Book ID: ");
+        try {
+            int bookId = Integer.parseInt(scanner.nextLine().trim());
+            System.out.print("New total quantity: ");
+            int quantity = Integer.parseInt(scanner.nextLine().trim());
+            library.updateQuantity(bookId, quantity);
+            System.out.println("Book quantity updated successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter valid whole-number values.");
+        } catch (BookNotFoundException | IllegalArgumentException e) {
+            System.out.println("Could not update quantity: " + e.getMessage());
+        }
+    }
+
+    private static void handleUndoDelete() {
+        if (!requireAdmin()) {
+            return;
+        }
+        if (library.undoDelete()) {
+            System.out.println("Last deleted book restored successfully.");
+        } else {
+            System.out.println("No deleted book available to restore.");
+        }
+    }
+
     private static void handleViewAllUsers() {
         if (!requireAdmin()) {
             return;
@@ -185,6 +276,16 @@ public class Main {
         }
         for (Book book : books) {
             System.out.println(book);
+        }
+    }
+
+    private static void displayIssues(List<IssueRecord> issues, String emptyMessage) {
+        if (issues.isEmpty()) {
+            System.out.println(emptyMessage);
+            return;
+        }
+        for (IssueRecord issue : issues) {
+            System.out.println(issue);
         }
     }
 
