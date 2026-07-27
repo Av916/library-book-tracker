@@ -9,6 +9,7 @@ import java.util.List;
 public class FileStorage {
     private static final String USERS_FILE = "users.txt";
     private static final String BOOKS_FILE = "books.txt";
+    private static final String ISSUES_FILE = "issues.txt";
 
     /**
      * Loads all users from users.txt into memory.
@@ -113,6 +114,53 @@ public class FileStorage {
             }
         } catch (IOException e) {
             System.out.println("Error saving books.txt: " + e.getMessage());
+        }
+    }
+
+    /** Loads all issue records from issues.txt. */
+    public List<IssueRecord> loadIssues() {
+        List<IssueRecord> issues = new ArrayList<>();
+        File file = new File(ISSUES_FILE);
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                System.out.println("Warning: could not create issues.txt -> " + e.getMessage());
+            }
+            return issues;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+                IssueRecord issue = IssueRecord.fromFileLine(line);
+                if (issue == null) {
+                    System.out.println("Warning: skipping corrupt line " + lineNumber + " in issues.txt");
+                    continue;
+                }
+                issues.add(issue);
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading issues.txt: " + e.getMessage());
+        }
+        return issues;
+    }
+
+    /** Saves all issue records after an issue or return action. */
+    public void saveIssues(List<IssueRecord> issues) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ISSUES_FILE))) {
+            for (IssueRecord issue : issues) {
+                writer.write(issue.toFileLine());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving issues.txt: " + e.getMessage());
         }
     }
 }

@@ -26,6 +26,9 @@ public class AuthService {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty.");
         }
+        if (username.contains(",")) {
+            throw new IllegalArgumentException("Username cannot contain commas.");
+        }
 
         for (User u : users) {
             if (u.getUsername().equalsIgnoreCase(username)) {
